@@ -1,4 +1,8 @@
-import axios, { AxiosError, AxiosResponse, AxiosRequestConfig } from 'axios';
+import axios, {
+  AxiosError,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from 'axios';
 
 // Environment configuration
 const CELLER_HUT_API_URL =
@@ -32,13 +36,10 @@ export const getAuthToken = (): string | null => {
 
 // Request interceptor for authentication
 cellerHutAPI.interceptors.request.use(
-  (config: AxiosRequestConfig) => {
+  (config: InternalAxiosRequestConfig) => {
     // Add authentication token if available
     if (authToken) {
-      config.headers = {
-        ...config.headers,
-        Authorization: `Bearer ${authToken}`,
-      };
+      config.headers.Authorization = `Bearer ${authToken}`;
     }
 
     // Log request for debugging (only in development)
