@@ -121,10 +121,10 @@
     "useAi": false,
     "defaultAi": "openai",
     "maxShopDistance": null,
-    "siteLink": "https://cellerhut.com",
-    "copyrightText": "Copyright \u00a9 CellerHut. All rights reserved worldwide.",
-    "externalText": "CellerHut",
-    "externalLink": "https://cellerhut.com",
+    "siteLink": "https://cellarhut.com",
+    "copyrightText": "Copyright \u00a9 CellarHut. All rights reserved worldwide.",
+    "externalText": "CellarHut",
+    "externalLink": "https://cellarhut.com",
     "smsEvent": {
       "admin": {
         "statusChangeOrder": false,
