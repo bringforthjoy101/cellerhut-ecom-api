@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import settingJson from '@db/settings.json';
 import { Setting } from 'src/settings/entities/setting.entity';
 import { plainToClass } from 'class-transformer';
-import { InjectStripe } from 'nestjs-stripe';
 import paymentGatewayJson from 'src/db/pickbazar/payment-gateway.json';
+import { STRIPE_CLIENT } from './stripe.module';
 import { Order } from 'src/orders/entities/order.entity';
 import { PaymentGateWay } from 'src/payment-method/entities/payment-gateway.entity';
 import { User } from 'src/users/entities/user.entity';
@@ -26,7 +26,9 @@ const setting = plainToClass(Setting, settingJson);
 export class StripePaymentService {
   private paymentGateways: PaymentGateWay[] = paymentGateways;
 
-  constructor(@InjectStripe() private readonly stripeClient: Stripe) {}
+  constructor(
+    @Inject(STRIPE_CLIENT) private readonly stripeClient: Stripe,
+  ) {}
 
   /**
    * @param  {StripeCreateCustomerDto} createCustomerDto?

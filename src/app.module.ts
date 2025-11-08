@@ -1,7 +1,7 @@
 import { MessagesModule } from './messages/messages.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { StripeModule } from 'nestjs-stripe';
+import { StripeModule } from './payment/stripe.module';
 import { AddressesModule } from './addresses/addresses.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { AttributesModule } from './attributes/attributes.module';
@@ -49,10 +49,7 @@ import { TrackingModule } from './tracking/tracking.module';
 @Module({
   imports: [
     ConfigModule.forRoot(),
-    StripeModule.forRoot({
-      apiKey: process.env.STRIPE_API_KEY,
-      apiVersion: '2022-11-15',
-    }),
+    StripeModule.forRootAsync(),
     UsersModule,
     CommonModule,
     ProductsModule,
