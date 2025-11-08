@@ -50,8 +50,12 @@ export class AuthController {
     return this.authService.resetPassword(resetPasswordDto);
   }
   @Post('change-password')
-  changePassword(@Body() changePasswordDto: ChangePasswordDto) {
-    return this.authService.changePassword(changePasswordDto);
+  changePassword(
+    @Body() changePasswordDto: ChangePasswordDto,
+    @Headers('authorization') authorization?: string,
+  ) {
+    const token = authorization?.replace('Bearer ', '');
+    return this.authService.changePassword(changePasswordDto, token);
   }
   @Post('logout')
   async logout(): Promise<boolean> {

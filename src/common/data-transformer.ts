@@ -56,8 +56,8 @@ export const transformCellerHutProduct = (cellerHutProduct: any): any => {
     slug: cellerHutProduct.slug,
     description: cellerHutProduct.description || '',
     type_id: cellerHutProduct.type.id,
-    price: cellerHutProduct.costPrice,
-    sale_price: cellerHutProduct.price,
+    price: cellerHutProduct.price, // Regular selling price
+    sale_price: cellerHutProduct.discountPrice || cellerHutProduct.price, // Discount price (or regular price if no discount)
     sku: cellerHutProduct.sku,
     quantity: cellerHutProduct.quantity || 0,
     in_stock: cellerHutProduct.in_stock ?? true,
@@ -74,21 +74,28 @@ export const transformCellerHutProduct = (cellerHutProduct: any): any => {
     updated_at: cellerHutProduct.updated_at,
     // Category mapping
     categories: cellerHutProduct.categories || [],
+    category: cellerHutProduct.category || null,
 
     // Additional fields as any to preserve liquor-specific data
-    ...(cellerHutProduct.alcohol_content && {
+    ...(cellerHutProduct.alcohol_content !== undefined && {
       alcohol_content: cellerHutProduct.alcohol_content,
     }),
-    ...(cellerHutProduct.volume && { volume: cellerHutProduct.volume }),
-    ...(cellerHutProduct.origin && { origin: cellerHutProduct.origin }),
-    ...(cellerHutProduct.vintage && { vintage: cellerHutProduct.vintage }),
-    ...(cellerHutProduct.tasting_notes && {
+    ...(cellerHutProduct.volume !== undefined && {
+      volume: cellerHutProduct.volume,
+    }),
+    ...(cellerHutProduct.origin !== undefined && {
+      origin: cellerHutProduct.origin,
+    }),
+    ...(cellerHutProduct.vintage !== undefined && {
+      vintage: cellerHutProduct.vintage,
+    }),
+    ...(cellerHutProduct.tasting_notes !== undefined && {
       tasting_notes: cellerHutProduct.tasting_notes,
     }),
-    ...(cellerHutProduct.food_pairings && {
+    ...(cellerHutProduct.food_pairings !== undefined && {
       food_pairings: cellerHutProduct.food_pairings,
     }),
-    ...(cellerHutProduct.serving_temperature && {
+    ...(cellerHutProduct.serving_temperature !== undefined && {
       serving_temperature: cellerHutProduct.serving_temperature,
     }),
     ...(cellerHutProduct.age_restricted !== undefined && {
@@ -116,6 +123,42 @@ export const transformCellerHutOrder = (cellerHutOrder: any): any => {
     discount: cellerHutOrder.discount || 0,
     delivery_fee: cellerHutOrder.delivery_fee || 0,
     delivery_time: cellerHutOrder.delivery_time,
+    shipping_zone: cellerHutOrder.shipping_zone,
+    estimated_delivery: cellerHutOrder.estimated_delivery,
+
+    // GPS TRACKING FIELDS
+    tracking_enabled: cellerHutOrder.tracking_enabled || false,
+    delivery_service: cellerHutOrder.delivery_service || null,
+    tookan_job_id: cellerHutOrder.tookan_job_id || null,
+    tookan_job_token: cellerHutOrder.tookan_job_token || null,
+    tracking_url: cellerHutOrder.tracking_url || null,
+
+    // DRIVER INFORMATION
+    driver_id: cellerHutOrder.driver_id || null,
+    driver_name: cellerHutOrder.driver_name || null,
+    driver_phone: cellerHutOrder.driver_phone || null,
+    driver_photo: cellerHutOrder.driver_photo || null,
+    driver_vehicle_number: cellerHutOrder.driver_vehicle_number || null,
+    driver_email: cellerHutOrder.driver_email || null,
+
+    // DELIVERY TIMESTAMPS
+    estimated_delivery_time: cellerHutOrder.estimated_delivery_time || null,
+    arrived_datetime: cellerHutOrder.arrived_datetime || null,
+    acknowledged_datetime: cellerHutOrder.acknowledged_datetime || null,
+    actual_delivery_time: cellerHutOrder.actual_delivery_time || null,
+
+    // DELIVERY LOCATION
+    delivery_latitude: cellerHutOrder.delivery_latitude || null,
+    delivery_longitude: cellerHutOrder.delivery_longitude || null,
+
+    // PROOF OF DELIVERY
+    delivery_signature_url: cellerHutOrder.delivery_signature_url || null,
+    delivery_photo_url: cellerHutOrder.delivery_photo_url || null,
+    delivery_notes: cellerHutOrder.delivery_notes || null,
+
+    // TOOKAN STATUS
+    tookan_status: cellerHutOrder.tookan_status || null,
+
     products: cellerHutOrder.products || [],
     created_at: cellerHutOrder.created_at,
     updated_at: cellerHutOrder.updated_at,
@@ -149,7 +192,7 @@ export const transformCellerHutCategory = (cellerHutCategory: any): any => {
       original: cellerHutCategory.image,
       thumbnail: cellerHutCategory.image,
     },
-    icon: 'Beverage', //cellerHutCategory.icon || '',
+    icon: cellerHutCategory.icon || 'Beverage',
 
     created_at: cellerHutCategory.created_at,
     updated_at: cellerHutCategory.updated_at,

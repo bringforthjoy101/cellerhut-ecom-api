@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from 'src/auth/auth.module';
-import { PaymentModule } from 'src/payment/payment.module';
+// PaymentModule removed - payment processing now handled by Main API
+// import { PaymentModule } from 'src/payment/payment.module';
 import {
   DownloadInvoiceController,
   OrderExportController,
@@ -12,7 +13,7 @@ import { OrdersService } from './orders.service';
 import { CellerHutOrdersService } from './celler-hut-orders.service';
 
 @Module({
-  imports: [AuthModule, PaymentModule],
+  imports: [AuthModule], // Removed PaymentModule
   controllers: [
     OrdersController,
     OrderStatusController,

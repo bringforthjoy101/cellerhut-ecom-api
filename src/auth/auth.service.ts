@@ -41,28 +41,8 @@ export class AuthService {
       return await this.cellerHutAuthService.login(loginInput);
     } catch (error) {
       console.error('[Auth Service] Login failed:', error);
-      // Fallback for demo purposes
-      if (loginInput.email === 'admin@demo.com') {
-        return {
-          token: 'demo_jwt_token',
-          permissions: ['store_owner', 'super_admin'],
-          role: 'super_admin',
-        };
-      } else if (
-        ['store_owner@demo.com', 'vendor@demo.com'].includes(loginInput.email)
-      ) {
-        return {
-          token: 'demo_jwt_token',
-          permissions: ['store_owner', 'customer'],
-          role: 'store_owner',
-        };
-      } else {
-        return {
-          token: 'demo_jwt_token',
-          permissions: ['customer'],
-          role: 'customer',
-        };
-      }
+      // Re-throw the error so frontend can handle it properly
+      throw error;
     }
   }
 
@@ -71,10 +51,12 @@ export class AuthService {
    */
   async changePassword(
     changePasswordInput: ChangePasswordDto,
+    token?: string,
   ): Promise<CoreResponse> {
     try {
       return await this.cellerHutAuthService.changePassword(
         changePasswordInput,
+        token,
       );
     } catch (error) {
       console.error('[Auth Service] Change password failed:', error);

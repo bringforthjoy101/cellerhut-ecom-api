@@ -62,12 +62,13 @@ export class CellerHutProductsService {
   async getProductBySlug(slug: string): Promise<any> {
     try {
       const response = await cellerHutAPI.get(`/ecommerce/products/${slug}`);
-      //   console.log(response.data);
+      console.log('response', response.data);
       const product = transformCellerHutProduct(response.data.data);
       //   console.log({ product });
 
       // Get related products based on category
       const relatedProducts = await this.getRelatedProducts(product);
+      console.log('relatedProducts', relatedProducts);
 
       return {
         ...product,
@@ -372,22 +373,31 @@ export class CellerHutProductsService {
   private async getRelatedProducts(product: any): Promise<any[]> {
     try {
       const params: any = {
-        limit: 20,
+        limit: 10,
         exclude: product.id,
       };
 
+      console.log('product', JSON.stringify(product, null, 2));
       // Try to get related products by category first
       if (product.categories && product.categories.length > 0) {
         params.category = product.categories[0].slug;
       }
+      if (product.category) {
+        params.category = product.category.slug;
+      }
+
+      console.log('params', params);
 
       const response = await cellerHutAPI.get('/ecommerce/products', {
         params,
       });
 
-      return Array.isArray(response.data.data)
-        ? response.data.data.map(transformCellerHutProduct).slice(0, 20)
+      console.log('response', response.data);
+      const transformedData = Array.isArray(response.data.data.data)
+        ? response.data.data.data.map(transformCellerHutProduct).slice(0, 20)
         : [];
+      console.log('transformedData', transformedData);
+      return transformedData;
     } catch (error) {
       console.error(
         '[Celler Hut Products] Get related products failed:',

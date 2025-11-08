@@ -6,7 +6,7 @@ import axios, {
 
 // Environment configuration
 const CELLER_HUT_API_URL =
-  process.env.CELLER_HUT_API_URL || 'https://cellerhut-api.vercel.app';
+  process.env.CELLER_HUT_API_URL || 'http://localhost:8000';
 const CELLER_HUT_API_TIMEOUT = parseInt(
   process.env.CELLER_HUT_API_TIMEOUT || '10000',
 );

@@ -45,6 +45,7 @@ import { RefundReasonModule } from './refund-reasons/refund-reasons.module';
 import { NotifyLogsModule } from './notify-logs/notify-logs.module';
 import { BecomeSellerModule } from './become-seller/become-seller.module';
 import { OwnershipTransferModule } from './ownership-transfer/ownership-transfer.module';
+import { TrackingModule } from './tracking/tracking.module';
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -96,6 +97,7 @@ import { OwnershipTransferModule } from './ownership-transfer/ownership-transfer
     RefundReasonModule,
     BecomeSellerModule,
     OwnershipTransferModule,
+    TrackingModule,
   ],
   controllers: [],
   providers: [],

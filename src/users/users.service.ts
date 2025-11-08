@@ -7,6 +7,7 @@ import Fuse from 'fuse.js';
 import { User } from './entities/user.entity';
 import usersJson from '@db/users.json';
 import { paginate } from 'src/common/pagination/paginate';
+import { CellerHutAuthService } from '../auth/celler-hut-auth.service';
 
 const users = plainToClass(User, usersJson);
 
@@ -19,6 +20,8 @@ const fuse = new Fuse(users, options);
 @Injectable()
 export class UsersService {
   private users: User[] = users;
+
+  constructor(private readonly cellerHutAuthService: CellerHutAuthService) {}
 
   create(createUserDto: CreateUserDto) {
     return this.users[0];
@@ -77,8 +80,45 @@ export class UsersService {
     return this.users.find((user) => user.id === id);
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return this.users[0];
+  async update(id: number, updateUserDto: any, token?: string) {
+    // Note: Using 'any' type because ProfilesController passes a flat object with contact field
+    // at root level, not nested in profile. The controller casts to UpdateUserDto with 'as any'.
+    console.log('[Users Service] Updating user profile...');
+    console.log('[Users Service] Update data:', JSON.stringify(updateUserDto, null, 2));
+
+    if (!token) {
+      console.error('[Users Service] No authentication token provided');
+      throw new Error('Authentication token is required to update profile');
+    }
+
+    try {
+      // Transform frontend format to backend format
+      const profileData: any = { ...updateUserDto };
+
+      // Transform contact to phone if present at root level
+      if (updateUserDto.contact) {
+        profileData.phone = updateUserDto.contact;
+        delete profileData.contact;
+      }
+
+      // Handle nested profile.contact from profile update forms
+      if (updateUserDto.profile?.contact) {
+        profileData.phone = updateUserDto.profile.contact;
+        // Remove contact from nested profile to avoid confusion
+        if (profileData.profile) {
+          const { contact, ...restProfile } = profileData.profile;
+          profileData.profile = restProfile;
+        }
+      }
+
+      console.log('[Users Service] Transformed profile data:', JSON.stringify(profileData, null, 2));
+      const result = await this.cellerHutAuthService.updateProfile(token, profileData);
+      console.log('[Users Service] Profile updated successfully');
+      return result;
+    } catch (error) {
+      console.error('[Users Service] Update profile failed:', error.message);
+      throw error;
+    }
   }
 
   remove(id: number) {

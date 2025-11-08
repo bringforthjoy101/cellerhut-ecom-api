@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import cellerHutAPI from '../common/celler-hut-client';
 import {
   AuthResponse,
@@ -24,7 +24,7 @@ export class CellerHutAuthService {
    */
   async register(registerDto: RegisterDto): Promise<AuthResponse> {
     try {
-      const response = await cellerHutAPI.post('/ecommerce/auth/register', {
+      const response = await cellerHutAPI.post('/ecommerce/auth/signup', {
         name: registerDto.name,
         email: registerDto.email,
         password: registerDto.password,
@@ -70,8 +70,9 @@ export class CellerHutAuthService {
     } catch (error) {
       console.error('[Celler Hut Auth] Login failed:', error);
 
-      if (error.response?.status === 401) {
-        throw new Error('Invalid email or password');
+      // Check statusCode property added by celler-hut-client interceptor
+      if ((error as any).statusCode === 401) {
+        throw new UnauthorizedException('Invalid email or password');
       }
 
       throw new Error('Login failed. Please try again.');
@@ -83,12 +84,21 @@ export class CellerHutAuthService {
    */
   async changePassword(
     changePasswordDto: ChangePasswordDto,
+    token?: string,
   ): Promise<CoreResponse> {
     try {
-      await cellerHutAPI.post('/ecommerce/auth/change-password', {
-        current_password: changePasswordDto.oldPassword,
-        new_password: changePasswordDto.newPassword,
-      });
+      await cellerHutAPI.post(
+        '/ecommerce/auth/change-password',
+        {
+          current_password: changePasswordDto.oldPassword,
+          new_password: changePasswordDto.newPassword,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       return {
         success: true,
@@ -391,7 +401,7 @@ export class CellerHutAuthService {
   async updateProfile(token: string, profileData: any): Promise<User> {
     try {
       const response = await cellerHutAPI.put(
-        '/ecommerce/auth/profile',
+        '/ecommerce/auth/me',
         profileData,
         {
           headers: {
@@ -499,6 +509,93 @@ export class CellerHutAuthService {
     } catch (error) {
       console.error('[Celler Hut Auth] Get purchase history failed:', error);
       return [];
+    }
+  }
+
+  /**
+   * Get all addresses for the authenticated user
+   */
+  async getAddresses(token: string): Promise<any[]> {
+    try {
+      const response = await cellerHutAPI.get('/ecommerce/auth/addresses', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return response.data || [];
+    } catch (error) {
+      console.error('[Celler Hut Auth] Get addresses failed:', error);
+      throw new Error('Failed to get addresses');
+    }
+  }
+
+  /**
+   * Add a new address for the authenticated user
+   */
+  async addAddress(token: string, addressData: any): Promise<any> {
+    try {
+      const response = await cellerHutAPI.post(
+        '/ecommerce/auth/addresses',
+        addressData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error('[Celler Hut Auth] Add address failed:', error);
+      throw new Error('Failed to add address');
+    }
+  }
+
+  /**
+   * Update an existing address
+   */
+  async updateAddress(
+    token: string,
+    addressId: number,
+    addressData: any,
+  ): Promise<any> {
+    try {
+      const response = await cellerHutAPI.put(
+        `/ecommerce/auth/addresses/${addressId}`,
+        addressData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error('[Celler Hut Auth] Update address failed:', error);
+      throw new Error('Failed to update address');
+    }
+  }
+
+  /**
+   * Delete an address
+   */
+  async deleteAddress(token: string, addressId: number): Promise<any> {
+    try {
+      const response = await cellerHutAPI.delete(
+        `/ecommerce/auth/addresses/${addressId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error('[Celler Hut Auth] Delete address failed:', error);
+      throw new Error('Failed to delete address');
     }
   }
 }

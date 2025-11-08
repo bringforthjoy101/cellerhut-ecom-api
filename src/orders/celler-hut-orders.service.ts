@@ -18,23 +18,47 @@ import {
 export class CellerHutOrdersService {
   /**
    * Create order in Celler Hut API
+   * Main API now returns { order, payment } structure after Phase 7 integration
    */
   async create(createOrderDto: CreateOrderDto, token?: string): Promise<Order> {
     try {
+      console.log('[Celler Hut Orders] Transforming order data for Celler Hut API...');
       // Transform PickBazar order to Celler Hut format
       const cellerHutOrderData = transformOrderForCellerHut(createOrderDto);
+      console.log('[Celler Hut Orders] Transformed data:', JSON.stringify(cellerHutOrderData, null, 2));
 
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      console.log('[Celler Hut Orders] Sending POST request to /ecommerce/orders...');
       const response = await cellerHutAPI.post(
         '/ecommerce/orders',
         cellerHutOrderData,
         { headers },
       );
+      console.log('[Celler Hut Orders] Response received:', response.status);
+      console.log('[Celler Hut Orders] Response data:', JSON.stringify(response.data, null, 2));
+
+      // Main API now returns { order, payment } structure
+      // Handle both old format (just order) and new format (order + payment)
+      const orderData = response.data.order || response.data;
+      const paymentData = response.data.payment || null;
 
       // Transform response back to PickBazar format
-      return transformCellerHutOrder(response.data);
+      const transformedOrder = transformCellerHutOrder(orderData);
+
+      // Attach payment data if available (for frontend to handle redirects)
+      if (paymentData) {
+        console.log('[Celler Hut Orders] Payment data received:', JSON.stringify(paymentData, null, 2));
+        (transformedOrder as any).payment = paymentData;
+      }
+
+      console.log('[Celler Hut Orders] Transformed order:', JSON.stringify(transformedOrder, null, 2));
+      return transformedOrder;
     } catch (error) {
-      console.error('[Celler Hut Orders] Create order failed:', error);
+      console.error('[Celler Hut Orders] Create order failed:', error.message);
+      if (error.response) {
+        console.error('[Celler Hut Orders] API Response:', error.response.data);
+        console.error('[Celler Hut Orders] API Status:', error.response.status);
+      }
       throw new Error('Failed to create order in Celler Hut API');
     }
   }
@@ -112,7 +136,27 @@ export class CellerHutOrdersService {
         });
       }
 
-      return transformCellerHutOrder(response.data);
+      const orderData = response.data;
+
+      // Transform order with tracking fields already included from Main API
+      const transformedOrder = transformCellerHutOrder(orderData);
+
+      // Build gps_tracking object from order data if tracking is enabled
+      // No need for separate API call - tracking fields already in order response
+      if (orderData.tracking_enabled && orderData.tookan_job_id) {
+        console.log(`[Celler Hut Orders] Adding GPS tracking data for order ${orderData.tracking_number}`);
+        transformedOrder.gps_tracking = {
+          trackingEnabled: orderData.tracking_enabled,
+          trackingUrl: orderData.tracking_url,
+          deliveryService: orderData.delivery_service,
+          orderId: orderData.id,
+          orderNumber: orderData.tracking_number,
+          orderStatus: orderData.order_status,
+        };
+        console.log('[Celler Hut Orders] GPS tracking data added successfully');
+      }
+
+      return transformedOrder;
     } catch (error) {
       console.error(
         '[Celler Hut Orders] Get order by ID/tracking failed:',
@@ -353,11 +397,10 @@ export class CellerHutOrdersService {
       console.log('response', response.data.data);
       return {
         unavailable_products: response.data.data.unavailable_products || [],
-        wallet_amount: response.data.data.wallet_amount || 0,
-        // wallet_currency: response.data.data.wallet_currency || 'ZAR',
-        wallet_currency: 0,
         total_tax: response.data.data.total_tax || 0,
         shipping_charge: response.data.data.shipping_charge || 0,
+        shipping_zone: response.data.data.shipping_zone || '',
+        estimated_delivery: response.data.data.estimated_delivery || '',
         available_coupons: response.data.data.available_coupons || [],
       };
     } catch (error) {

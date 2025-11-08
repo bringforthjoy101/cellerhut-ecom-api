@@ -82,6 +82,12 @@ export class OrdersController {
     const token = authorization?.replace('Bearer ', '');
     return this.ordersService.verifyCheckout(body, token);
   }
+  // ============================================================
+  // PAYMENT ENDPOINT REMOVED - Main API handles all payments
+  // Payment processing now done via Peach Payments V2 in Main API
+  // ============================================================
+
+  /*
   @Post('/payment')
   @HttpCode(200)
   async submitPayment(@Body() orderPaymentDto: OrderPaymentDto): Promise<void> {
@@ -101,6 +107,7 @@ export class OrdersController {
     }
     this.ordersService.processChildrenOrder(order);
   }
+  */
 }
 
 @Controller('order-status')

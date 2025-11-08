@@ -6,6 +6,9 @@ export class CreateAddressDto extends PickType(Address, [
   'type',
   'default',
   'address',
+  'latitude',
+  'longitude',
+  'formattedAddress',
 ]) {
   'customer_id': number;
 }

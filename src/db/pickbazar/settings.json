@@ -24,7 +24,7 @@
       }
     ],
     "isProductReview": false,
-    "useGoogleMap": false,
+    "useGoogleMap": true,
     "enableTerms": true,
     "isMultiCommissionRate": false,
     "enableCoupons": true,
@@ -45,8 +45,8 @@
       "twitterCardType": null
     },
     "logo": {
-      "thumbnail": "https://kore-smart.nyc3.digitaloceanspaces.com/uploads/images/1750099080478_mamn7.png",
-      "original": "https://kore-smart.nyc3.digitaloceanspaces.com/uploads/images/1750099080478_mamn7.png",
+      "thumbnail": "https://kore-smart.nyc3.digitaloceanspaces.com/cellar-hut/ICON%201%20(1).png",
+      "original": "https://kore-smart.nyc3.digitaloceanspaces.com/cellar-hut/ICON%201%20(1).png",
       "id": 2298,
       "file_name": "1750099080478_mamn7.png"
     },
@@ -94,15 +94,15 @@
     },
     "paymentGateway": [
       {
-        "name": "stripe",
-        "title": "Stripe"
+        "name": "PEACH",
+        "title": "Peach Payments"
       }
     ],
     "currencyOptions": {
       "formation": "en-ZA",
       "fractions": 2
     },
-    "useEnableGateway": false,
+    "useEnableGateway": true,
     "useCashOnDelivery": true,
     "freeShippingAmount": 0,
     "minimumOrderAmount": 0,

@@ -1,22 +1,12 @@
-import exportOrderJson from '@db/order-export.json';
-import orderFilesJson from '@db/order-files.json';
-import orderInvoiceJson from '@db/order-invoice.json';
-import orderStatusJson from '@db/order-statuses.json';
-import ordersJson from '@db/orders.json';
-import paymentGatewayJson from '@db/payment-gateway.json';
-import paymentIntentJson from '@db/payment-intent.json';
-import setting from '@db/settings.json';
 import { Injectable } from '@nestjs/common';
-import { plainToClass } from 'class-transformer';
-import Fuse from 'fuse.js';
 import { AuthService } from 'src/auth/auth.service';
 import { paginate } from 'src/common/pagination/paginate';
-import { PaymentIntent } from 'src/payment-intent/entries/payment-intent.entity';
-import { PaymentGateWay } from 'src/payment-method/entities/payment-gateway.entity';
-import { PaypalPaymentService } from 'src/payment/paypal-payment.service';
-import { StripePaymentService } from 'src/payment/stripe-payment.service';
-import { Setting } from 'src/settings/entities/setting.entity';
+// Payment processing removed - now handled by Main API (Peach Payments V2)
+// import { PaypalPaymentService } from 'src/payment/paypal-payment.service';
+// import { StripePaymentService } from 'src/payment/stripe-payment.service';
 import { CellerHutOrdersService } from './celler-hut-orders.service';
+import { PaymentIntent } from 'src/payment-intent/entries/payment-intent.entity';
+import { Setting } from 'src/settings/entities/setting.entity';
 import {
   CreateOrderStatusDto,
   UpdateOrderStatusDto,
@@ -42,92 +32,33 @@ import {
   PaymentStatusType,
 } from './entities/order.entity';
 
-const orders = plainToClass(Order, ordersJson);
-const paymentIntents = plainToClass(PaymentIntent, paymentIntentJson);
-// const paymentGateways = plainToClass(PaymentGateWay, paymentGatewayJson);
-const orderStatus = plainToClass(OrderStatus, orderStatusJson);
-
-const options = {
-  keys: ['name'],
-  threshold: 0.3,
-};
-const fuse = new Fuse(orderStatus, options);
-
-const orderFiles = plainToClass(OrderFiles, orderFilesJson);
-const settings = plainToClass(Setting, setting);
-
 @Injectable()
 export class OrdersService {
-  private orders: Order[] = orders;
-  private orderStatus: OrderStatus[] = orderStatus;
-  private orderFiles: OrderFiles[] = orderFiles;
-  private setting: Setting = { ...settings };
-
   constructor(
     private readonly authService: AuthService,
-    private readonly stripeService: StripePaymentService,
-    private readonly paypalService: PaypalPaymentService,
+    // Payment services removed - Main API handles all payment processing
+    // private readonly stripeService: StripePaymentService,
+    // private readonly paypalService: PaypalPaymentService,
     private readonly cellerHutOrdersService: CellerHutOrdersService,
   ) {}
   async create(
     createOrderInput: CreateOrderDto,
     token?: string,
   ): Promise<Order> {
-    // Use Celler Hut API for order creation
+    console.log('[Orders Service] Creating order via Celler Hut API...');
+    console.log('[Orders Service] Order data:', JSON.stringify(createOrderInput, null, 2));
+
     try {
-      return await this.cellerHutOrdersService.create(createOrderInput, token);
+      const result = await this.cellerHutOrdersService.create(createOrderInput, token);
+      console.log('[Orders Service] Order created successfully:', result.tracking_number);
+      return result;
     } catch (error) {
-      console.error(
-        '[Orders Service] Celler Hut API failed, falling back to local processing:',
-        error,
-      );
-
-      // Fallback to local order processing if Celler Hut API fails
-      const order: Order = this.orders[0];
-      const payment_gateway_type = createOrderInput.payment_gateway
-        ? createOrderInput.payment_gateway
-        : PaymentGatewayType.CASH_ON_DELIVERY;
-      order.payment_gateway = payment_gateway_type;
-      order.payment_intent = null;
-      // set the order type and payment type
-
-      switch (payment_gateway_type) {
-        case PaymentGatewayType.CASH_ON_DELIVERY:
-          order.order_status = OrderStatusType.PROCESSING;
-          order.payment_status = PaymentStatusType.CASH_ON_DELIVERY;
-          break;
-        case PaymentGatewayType.CASH:
-          order.order_status = OrderStatusType.PROCESSING;
-          order.payment_status = PaymentStatusType.CASH;
-          break;
-        case PaymentGatewayType.FULL_WALLET_PAYMENT:
-          order.order_status = OrderStatusType.COMPLETED;
-          order.payment_status = PaymentStatusType.WALLET;
-          break;
-        default:
-          order.order_status = OrderStatusType.PENDING;
-          order.payment_status = PaymentStatusType.PENDING;
-          break;
+      console.error('[Orders Service] Failed to create order:', error.message);
+      if (error.response) {
+        console.error('[Orders Service] API Response:', error.response.data);
+        console.error('[Orders Service] API Status:', error.response.status);
       }
-      order.children = this.processChildrenOrder(order);
-      try {
-        if (
-          [
-            PaymentGatewayType.STRIPE,
-            PaymentGatewayType.PAYPAL,
-            PaymentGatewayType.RAZORPAY,
-          ].includes(payment_gateway_type)
-        ) {
-          const paymentIntent = await this.processPaymentIntent(
-            order,
-            this.setting,
-          );
-          order.payment_intent = paymentIntent;
-        }
-        return order;
-      } catch (error) {
-        return order;
-      }
+      throw error;
     }
   }
 
@@ -142,7 +73,6 @@ export class OrdersService {
     }: GetOrdersDto,
     token?: string,
   ): Promise<OrderPaginator> {
-    // Use Celler Hut API for order retrieval
     try {
       return await this.cellerHutOrdersService.getOrders(
         {
@@ -156,28 +86,8 @@ export class OrdersService {
         token,
       );
     } catch (error) {
-      console.error(
-        '[Orders Service] Celler Hut API failed, falling back to local data:',
-        error,
-      );
-
-      // Fallback to local data if Celler Hut API fails
-      if (!page) page = 1;
-      if (!limit) limit = 15;
-      const startIndex = (page - 1) * limit;
-      const endIndex = page * limit;
-
-      let data: Order[] = this.orders;
-
-      if (shop_id && shop_id !== 'undefined') {
-        data = this.orders?.filter((p) => p?.shop?.id === Number(shop_id));
-      }
-      const results = data.slice(startIndex, endIndex);
-      const url = `/orders?search=${search}&limit=${limit}`;
-      return {
-        data: results,
-        ...paginate(data.length, page, limit, results.length, url),
-      };
+      console.error('[Orders Service] Failed to fetch orders:', error.message);
+      throw error;
     }
   }
 
@@ -185,30 +95,14 @@ export class OrdersService {
     id: string,
     token?: string,
   ): Promise<Order> {
-    // Use Celler Hut API for order retrieval
     try {
       return await this.cellerHutOrdersService.getOrderByIdOrTrackingNumber(
         id,
         token,
       );
     } catch (error) {
-      console.error(
-        '[Orders Service] Celler Hut API failed, falling back to local data:',
-        error,
-      );
-
-      // Fallback to local data if Celler Hut API fails
-      try {
-        return (
-          this.orders.find(
-            (o: Order) =>
-              o.id === Number(id) || o.tracking_number === id.toString(),
-          ) ?? this.orders[0]
-        );
-      } catch (error) {
-        console.log(error);
-        throw new Error(`Order with ID/tracking "${id}" not found`);
-      }
+      console.error('[Orders Service] Failed to fetch order:', error.message);
+      throw error;
     }
   }
 
@@ -217,61 +111,30 @@ export class OrdersService {
     page,
     search,
   }: GetOrderStatusesDto): OrderStatusPaginator {
+    // TODO: Implement order statuses endpoint in Celler Hut API
+    console.warn('[Orders Service] getOrderStatuses not implemented - returning empty results');
     if (!page) page = 1;
     if (!limit) limit = 30;
-    const startIndex = (page - 1) * limit;
-    const endIndex = page * limit;
-    let data: OrderStatus[] = this.orderStatus;
 
-    // if (shop_id) {
-    //   data = this.orders?.filter((p) => p?.shop?.id === shop_id);
-    // }
-
-    if (search) {
-      const parseSearchParams = search.split(';');
-      const searchText: any = [];
-      for (const searchParam of parseSearchParams) {
-        const [key, value] = searchParam.split(':');
-        // TODO: Temp Solution
-        if (key !== 'slug') {
-          searchText.push({
-            [key]: value,
-          });
-        }
-      }
-
-      data = fuse
-        .search({
-          $and: searchText,
-        })
-        ?.map(({ item }) => item);
-    }
-
-    const results = data.slice(startIndex, endIndex);
     const url = `/order-status?search=${search}&limit=${limit}`;
-
     return {
-      data: results,
-      ...paginate(data.length, page, limit, results.length, url),
+      data: [],
+      ...paginate(0, page, limit, 0, url),
     };
   }
 
   getOrderStatus(param: string) {
-    return this.orderStatus.find((p) => p.slug === param);
+    // TODO: Implement order status endpoint in Celler Hut API
+    console.warn('[Orders Service] getOrderStatus not implemented');
+    return null;
   }
 
   async update(id: number, updateOrderInput: UpdateOrderDto): Promise<Order> {
-    // Use Celler Hut API for order updates
     try {
       return await this.cellerHutOrdersService.update(id, updateOrderInput);
     } catch (error) {
-      console.error(
-        '[Orders Service] Celler Hut API failed, falling back to local data:',
-        error,
-      );
-
-      // Fallback to local data if Celler Hut API fails
-      return this.orders[0];
+      console.error('[Orders Service] Failed to update order:', error.message);
+      throw error;
     }
   }
 
@@ -283,63 +146,55 @@ export class OrdersService {
     input: CheckoutVerificationDto,
     token?: string,
   ): Promise<VerifiedCheckoutData> {
-    // Use Celler Hut API for checkout verification
     try {
       return await this.cellerHutOrdersService.verifyCheckout(input, token);
     } catch (error) {
-      console.error(
-        '[Orders Service] Celler Hut API failed, falling back to local verification:',
-        error,
-      );
-
-      // Fallback to basic verification if Celler Hut API fails
-      return {
-        total_tax: 0,
-        shipping_charge: 0,
-        unavailable_products: [],
-        wallet_currency: 0,
-        wallet_amount: 0,
-      };
+      console.error('[Orders Service] Failed to verify checkout:', error.message);
+      throw error;
     }
   }
 
   createOrderStatus() {
-    return this.orderStatus[0];
+    // TODO: Implement create order status endpoint in Celler Hut API
+    console.warn('[Orders Service] createOrderStatus not implemented');
+    throw new Error('Creating order statuses is not yet implemented');
   }
 
   updateOrderStatus() {
-    return this.orderStatus[0];
+    // TODO: Implement update order status endpoint in Celler Hut API
+    console.warn('[Orders Service] updateOrderStatus not implemented');
+    throw new Error('Updating order statuses is not yet implemented');
   }
 
   async getOrderFileItems({ page, limit }: GetOrderFilesDto) {
+    // TODO: Implement digital file downloads endpoint in Celler Hut API
+    console.warn('[Orders Service] getOrderFileItems not implemented - returning empty results');
     if (!page) page = 1;
     if (!limit) limit = 30;
-    const startIndex = (page - 1) * limit;
-    const endIndex = page * limit;
-
-    const results = orderFiles.slice(startIndex, endIndex);
 
     const url = `/downloads?&limit=${limit}`;
     return {
-      data: results,
-      ...paginate(orderFiles.length, page, limit, results.length, url),
+      data: [],
+      ...paginate(0, page, limit, 0, url),
     };
   }
 
   async getDigitalFileDownloadUrl(digitalFileId: number) {
-    const item: OrderFiles = this.orderFiles.find(
-      (singleItem) => singleItem.digital_file_id === digitalFileId,
-    );
-
-    return item.file.url;
+    // TODO: Implement digital file download URL endpoint in Celler Hut API
+    console.warn('[Orders Service] getDigitalFileDownloadUrl not implemented');
+    throw new Error('Digital file downloads are not yet implemented');
   }
 
   async exportOrder(shop_id: string) {
-    return exportOrderJson.url;
+    // TODO: Implement order export endpoint in Celler Hut API
+    console.warn('[Orders Service] exportOrder not implemented');
+    throw new Error('Order export is not yet implemented');
   }
 
   async downloadInvoiceUrl(shop_id: string) {
-    return orderInvoiceJson[0].url;
+    // TODO: Implement invoice download endpoint in Celler Hut API
+    console.warn('[Orders Service] downloadInvoiceUrl not implemented');
+    throw new Error('Invoice download is not yet implemented');
   }
 
   /**
@@ -358,69 +213,60 @@ export class OrdersService {
       return child;
     });
   }
-  /**
+
+  // ============================================================
+  // PAYMENT METHODS REMOVED - Main API handles all payments
+  // Payment processing now done via Peach Payments V2 in Main API
+  // ============================================================
+
+  /*
+  **
    * This action will return Payment Intent
    * @param order
    * @param setting
-   */
+   *
   async processPaymentIntent(
     order: Order,
     setting: Setting,
   ): Promise<PaymentIntent> {
-    const paymentIntent = paymentIntents.find(
-      (intent: PaymentIntent) =>
-        intent.tracking_number === order.tracking_number &&
-        intent.payment_gateway.toString().toLowerCase() ===
-          setting.options.paymentGateway.toString().toLowerCase(),
-    );
-    if (paymentIntent) {
-      return paymentIntent;
+    console.log('[Orders Service] Creating payment intent for order:', order.tracking_number);
+
+    try {
+      const {
+        id: payment_id,
+        client_secret = null,
+        redirect_url = null,
+        customer = null,
+      } = await this.savePaymentIntent(order, order.payment_gateway);
+
+      const is_redirect = redirect_url ? true : false;
+      const paymentIntentInfo: PaymentIntent = {
+        id: Number(Date.now()),
+        order_id: order.id,
+        tracking_number: order.tracking_number,
+        payment_gateway: order.payment_gateway.toString().toLowerCase(),
+        payment_intent_info: {
+          client_secret,
+          payment_id,
+          redirect_url,
+          is_redirect,
+        },
+      };
+
+      console.log('[Orders Service] Payment intent created successfully');
+      return paymentIntentInfo;
+    } catch (error) {
+      console.error('[Orders Service] Failed to create payment intent:', error.message);
+      throw error;
     }
-    const {
-      id: payment_id,
-      client_secret = null,
-      redirect_url = null,
-      customer = null,
-    } = await this.savePaymentIntent(order, order.payment_gateway);
-    const is_redirect = redirect_url ? true : false;
-    const paymentIntentInfo: PaymentIntent = {
-      id: Number(Date.now()),
-      order_id: order.id,
-      tracking_number: order.tracking_number,
-      payment_gateway: order.payment_gateway.toString().toLowerCase(),
-      payment_intent_info: {
-        client_secret,
-        payment_id,
-        redirect_url,
-        is_redirect,
-      },
-    };
-
-    /**
-     * Commented below code will work for real database.
-     * if you uncomment this for json will arise conflict.
-     */
-
-    // paymentIntents.push(paymentIntentInfo);
-    // const paymentGateway: PaymentGateWay = {
-    //   id: Number(Date.now()),
-    //   user_id: this.authService.me().id,
-    //   customer_id: customer,
-    //   gateway_name: setting.options.paymentGateway,
-    //   created_at: new Date(),
-    //   updated_at: new Date(),
-    // };
-    // paymentGateways.push(paymentGateway);
-
-    return paymentIntentInfo;
   }
 
-  /**
+  **
    * Trailing method of ProcessPaymentIntent Method
    *
    * @param order
    * @param paymentGateway
-   */
+   *
   async savePaymentIntent(order: Order, paymentGateway?: string): Promise<any> {
     const me = await this.authService.me();
     switch (order.payment_gateway) {
@@ -439,39 +285,71 @@ export class OrdersService {
     }
   }
 
-  /**
+  **
    *  Route {order/payment} Submit Payment intent here
    * @param order
    * @param orderPaymentDto
-   */
+   *
   async stripePay(order: Order) {
-    this.orders[0]['order_status'] = OrderStatusType.PROCESSING;
-    this.orders[0]['payment_status'] = PaymentStatusType.SUCCESS;
-    this.orders[0]['payment_intent'] = null;
-  }
-
-  async paypalPay(order: Order) {
-    this.orders[0]['order_status'] = OrderStatusType.PROCESSING;
-    this.orders[0]['payment_status'] = PaymentStatusType.SUCCESS;
-    const { status } = await this.paypalService.verifyOrder(
-      order.payment_intent.payment_intent_info.payment_id,
-    );
-    this.orders[0]['payment_intent'] = null;
-    if (status === 'COMPLETED') {
-      //console.log('payment Success');
+    console.log('[Orders Service] Processing Stripe payment for order:', order.id);
+    try {
+      await this.cellerHutOrdersService.update(order.id, {
+        order_status: OrderStatusType.PROCESSING,
+        payment_status: PaymentStatusType.SUCCESS,
+        payment_intent: null,
+      } as any);
+      console.log('[Orders Service] Order status updated after Stripe payment');
+    } catch (error) {
+      console.error('[Orders Service] Failed to update order after Stripe payment:', error.message);
+      throw error;
     }
   }
 
-  /**
+  async paypalPay(order: Order) {
+    console.log('[Orders Service] Processing PayPal payment for order:', order.id);
+    try {
+      const { status } = await this.paypalService.verifyOrder(
+        order.payment_intent.payment_intent_info.payment_id,
+      );
+
+      if (status === 'COMPLETED') {
+        await this.cellerHutOrdersService.update(order.id, {
+          order_status: OrderStatusType.PROCESSING,
+          payment_status: PaymentStatusType.SUCCESS,
+          payment_intent: null,
+        } as any);
+        console.log('[Orders Service] Order status updated after PayPal payment');
+      } else {
+        console.warn('[Orders Service] PayPal payment not completed. Status:', status);
+      }
+    } catch (error) {
+      console.error('[Orders Service] Failed to update order after PayPal payment:', error.message);
+      throw error;
+    }
+  }
+
+  **
    * This method will set order status and payment status
+   * @param orderId
    * @param orderStatus
    * @param paymentStatus
-   */
-  changeOrderPaymentStatus(
+   *
+  async changeOrderPaymentStatus(
+    orderId: number,
     orderStatus: OrderStatusType,
     paymentStatus: PaymentStatusType,
   ) {
-    this.orders[0]['order_status'] = orderStatus;
-    this.orders[0]['payment_status'] = paymentStatus;
+    console.log('[Orders Service] Updating order payment status:', { orderId, orderStatus, paymentStatus });
+    try {
+      await this.cellerHutOrdersService.update(orderId, {
+        order_status: orderStatus,
+        payment_status: paymentStatus,
+      } as any);
+      console.log('[Orders Service] Order payment status updated successfully');
+    } catch (error) {
+      console.error('[Orders Service] Failed to update order payment status:', error.message);
+      throw error;
+    }
   }
+  */
 }

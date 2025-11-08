@@ -12,6 +12,9 @@ export class Address extends CoreEntity {
   address: UserAddress;
   type: AddressType;
   customer: User;
+  latitude?: number;
+  longitude?: number;
+  formattedAddress?: string;
 }
 export class UserAddress {
   street_address: string;

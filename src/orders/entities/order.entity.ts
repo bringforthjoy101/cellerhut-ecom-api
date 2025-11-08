@@ -61,6 +61,8 @@ export class Order extends CoreEntity {
   discount?: number;
   delivery_fee: number;
   delivery_time: string;
+  shipping_zone?: string;
+  estimated_delivery?: string;
   products: Product[];
   billing_address: UserAddress;
   shipping_address: UserAddress;
@@ -68,6 +70,55 @@ export class Order extends CoreEntity {
   translated_languages: string[];
   payment_intent: PaymentIntent;
   altered_payment_gateway?: string;
+  gps_tracking?: GpsTracking;
+}
+
+// GPS Tracking Types
+export class GpsLocation {
+  lat: number;
+  lng: number;
+}
+
+export class DriverInfo {
+  id?: string;
+  name?: string;
+  phone?: string;
+  photo?: string;
+  vehicleNumber?: string;
+  location?: GpsLocation;
+}
+
+export class ProofOfDelivery {
+  signature?: string;
+  photo?: string;
+}
+
+export class DeliveryInfo {
+  estimatedTime?: string;
+  actualTime?: string;
+  location?: GpsLocation;
+  proofOfDelivery?: ProofOfDelivery;
+}
+
+export class TimelineEvent {
+  id: number;
+  status: string;
+  eventType: string;
+  notes?: string;
+  timestamp: string;
+  location?: GpsLocation;
+}
+
+export class GpsTracking {
+  orderId: string;
+  orderNumber: string;
+  orderStatus: string;
+  trackingEnabled: boolean;
+  trackingUrl?: string;
+  deliveryService?: string;
+  driver?: DriverInfo;
+  delivery?: DeliveryInfo;
+  timeline?: TimelineEvent[];
 }
 
 export class OrderFiles extends CoreEntity {

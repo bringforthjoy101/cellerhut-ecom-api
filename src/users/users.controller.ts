@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Query,
+  Headers,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -35,8 +36,14 @@ export class UsersController {
   }
 
   @Put(':id')
-  updateUser(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(+id, updateUserDto);
+  updateUser(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+    @Headers('authorization') authorization?: string,
+  ) {
+    // Extract token from Bearer authorization header
+    const token = authorization?.replace('Bearer ', '');
+    return this.usersService.update(+id, updateUserDto, token);
   }
 
   @Delete(':id')
@@ -70,8 +77,21 @@ export class ProfilesController {
   }
 
   @Put(':id')
-  updateProfile(@Body() updateProfileDto: UpdateProfileDto) {
-    console.log(updateProfileDto);
+  async updateProfile(
+    @Param('id') id: string,
+    @Body() updateProfileDto: UpdateProfileDto,
+    @Headers('authorization') authorization?: string,
+  ) {
+    // Extract token from Bearer authorization header
+    const token = authorization?.replace('Bearer ', '');
+
+    // Transform UpdateProfileDto to UpdateUserDto format
+    const updateUserDto = {
+      phone: updateProfileDto.contact,
+      ...updateProfileDto,
+    };
+
+    return this.usersService.update(+id, updateUserDto as any, token);
   }
 
   @Delete(':id')
