@@ -198,6 +198,58 @@ export class OrdersService {
   }
 
   /**
+   * PAYMENT-FIRST FLOW: Validate checkout before payment
+   */
+  async validateCheckoutForPayment(checkoutData: any, token?: string): Promise<any> {
+    try {
+      console.log('[Orders Service] Validating checkout for payment-first flow...');
+      return await this.cellerHutOrdersService.validateCheckoutForPayment(checkoutData, token);
+    } catch (error) {
+      console.error('[Orders Service] Failed to validate checkout for payment:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * PAYMENT-FIRST FLOW: Initiate payment without creating order
+   */
+  async initiatePaymentFirst(paymentData: any, token?: string): Promise<any> {
+    try {
+      console.log('[Orders Service] Initiating payment-first flow...');
+      return await this.cellerHutOrdersService.initiatePaymentFirst(paymentData, token);
+    } catch (error) {
+      console.error('[Orders Service] Failed to initiate payment-first:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * PAYMENT-FIRST FLOW: Get checkout session data
+   */
+  async getCheckoutSession(sessionId: string, token?: string): Promise<any> {
+    try {
+      console.log('[Orders Service] Getting checkout session:', sessionId);
+      return await this.cellerHutOrdersService.getCheckoutSession(sessionId, token);
+    } catch (error) {
+      console.error('[Orders Service] Failed to get checkout session:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * PAYMENT-FIRST FLOW: Verify payment status before creating order
+   */
+  async verifyPaymentForOrder(data: { checkoutId: string }, token?: string): Promise<any> {
+    try {
+      console.log('[Orders Service] Verifying payment for order creation:', data.checkoutId);
+      return await this.cellerHutOrdersService.verifyPaymentForOrder(data, token);
+    } catch (error) {
+      console.error('[Orders Service] Failed to verify payment for order:', error.message);
+      throw error;
+    }
+  }
+
+  /**
    * helper methods from here
    */
 

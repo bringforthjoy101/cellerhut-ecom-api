@@ -438,4 +438,121 @@ export class CellerHutOrdersService {
       };
     }
   }
+
+  /**
+   * PAYMENT-FIRST FLOW: Validate checkout before payment initiation
+   *
+   * This is used when customer selects Peach payment.
+   * Flow: Validate → Initiate Payment → Customer Pays → Create Order
+   */
+  async validateCheckoutForPayment(checkoutData: any, token?: string): Promise<any> {
+    try {
+      console.log('[Celler Hut Orders] Validating checkout for payment-first flow...');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+      const response = await cellerHutAPI.post(
+        '/ecommerce/checkout/validate',
+        checkoutData,
+        { headers },
+      );
+
+      console.log('[Celler Hut Orders] Checkout validation response:', response.data);
+
+      return {
+        sessionId: response.data.data.sessionId,
+        validated: response.data.data.validated,
+        message: response.data.message,
+      };
+    } catch (error) {
+      console.error('[Celler Hut Orders] Validate checkout for payment failed:', error.message);
+      if (error.response) {
+        console.error('[Celler Hut Orders] API Response:', error.response.data);
+        throw new Error(error.response.data.message || 'Failed to validate checkout');
+      }
+      throw new Error('Failed to validate checkout for payment');
+    }
+  }
+
+  /**
+   * PAYMENT-FIRST FLOW: Initiate payment WITHOUT creating order
+   *
+   * Used for Peach payments where we validate first, get payment, then create order.
+   */
+  async initiatePaymentFirst(paymentData: any, token?: string): Promise<any> {
+    try {
+      console.log('[Celler Hut Orders] Initiating payment-first flow...');
+      console.log('[Celler Hut Orders] Payment data:', JSON.stringify(paymentData, null, 2));
+
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+      const response = await cellerHutAPI.post(
+        '/ecommerce/payments/initiate-payment-first',
+        paymentData,
+        { headers },
+      );
+
+      console.log('[Celler Hut Orders] Payment initiation response:', response);
+
+      return {
+        transactionId: response.data.transactionId,
+        checkoutId: response.data.checkoutId,
+        paymentUrl: response.data.paymentUrl,
+        status: response.data.status,
+        message: response.data.message,
+      };
+    } catch (error) {
+      console.error('[Celler Hut Orders] Initiate payment-first failed:', error.message);
+      if (error.response) {
+        console.error('[Celler Hut Orders] API Response:', error.response.data);
+        throw new Error(error.response.data.message || 'Failed to initiate payment');
+      }
+      throw new Error('Failed to initiate payment');
+    }
+  }
+
+  /**
+   * PAYMENT-FIRST FLOW: Get checkout session data
+   *
+   * Retrieve validated checkout data from Redis session.
+   */
+  async getCheckoutSession(sessionId: string, token?: string): Promise<any> {
+    try {
+      console.log('[Celler Hut Orders] Getting checkout session:', sessionId);
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+      const response = await cellerHutAPI.get(
+        `/ecommerce/checkout/session/${sessionId}`,
+        { headers },
+      );
+
+      return response.data.data;
+    } catch (error) {
+      console.error('[Celler Hut Orders] Get checkout session failed:', error.message);
+      throw new Error('Failed to get checkout session');
+    }
+  }
+
+  /**
+   * PAYMENT-FIRST FLOW: Verify payment status before creating order
+   *
+   * Verifies the payment with Peach Payments and retrieves the checkout session data
+   * to create the order. Handles idempotency for already processed payments.
+   */
+  async verifyPaymentForOrder(data: { checkoutId: string }, token?: string): Promise<any> {
+    try {
+      console.log('[Celler Hut Orders] Verifying payment for order:', data.checkoutId);
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+      const response = await cellerHutAPI.post(
+        '/ecommerce/payments/verify-for-order',
+        data,
+        { headers },
+      );
+
+      return response.data.data;
+    } catch (error) {
+      console.error('[Celler Hut Orders] Verify payment for order failed:', error.message);
+      throw new Error('Failed to verify payment for order');
+    }
+  }
 }

@@ -8,13 +8,13 @@ import axios, {
 const CELLER_HUT_API_URL =
   process.env.CELLER_HUT_API_URL || 'http://localhost:8000';
 const CELLER_HUT_API_TIMEOUT = parseInt(
-  process.env.CELLER_HUT_API_TIMEOUT || '10000',
+  process.env.CELLER_HUT_API_TIMEOUT || '30000',
 );
 
 // Create axios instance for Celler Hut API
 const cellerHutAPI = axios.create({
   baseURL: CELLER_HUT_API_URL,
-  timeout: CELLER_HUT_API_TIMEOUT,
+  timeout: Number(12000),
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',

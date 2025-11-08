@@ -82,6 +82,72 @@ export class OrdersController {
     const token = authorization?.replace('Bearer ', '');
     return this.ordersService.verifyCheckout(body, token);
   }
+
+  // ============================================================
+  // PAYMENT-FIRST FLOW ENDPOINTS (Peach Payments)
+  // ============================================================
+
+  /**
+   * Validate checkout before payment initiation
+   * POST /orders/checkout/validate-for-payment
+   */
+  @Post('checkout/validate-for-payment')
+  async validateCheckoutForPayment(
+    @Body() checkoutData: any,
+    @Headers('authorization') authorization?: string,
+  ): Promise<any> {
+    console.log('[Orders Controller] Validating checkout for payment-first flow');
+    const token = authorization?.replace('Bearer ', '');
+    return this.ordersService.validateCheckoutForPayment(checkoutData, token);
+  }
+
+  /**
+   * Initiate payment without creating order (Peach payment-first flow)
+   * POST /orders/initiate-payment-first
+   */
+  @Post('initiate-payment-first')
+  @HttpCode(201)
+  async initiatePaymentFirst(
+    @Body() paymentData: any,
+    @Headers('authorization') authorization?: string,
+  ): Promise<any> {
+    console.log('[Orders Controller] Initiating payment-first flow');
+    const token = authorization?.replace('Bearer ', '');
+    return this.ordersService.initiatePaymentFirst(paymentData, token);
+  }
+
+  /**
+   * Get checkout session data
+   * GET /orders/checkout-session/:sessionId
+   */
+  @Get('checkout-session/:sessionId')
+  async getCheckoutSession(
+    @Param('sessionId') sessionId: string,
+    @Headers('authorization') authorization?: string,
+  ): Promise<any> {
+    console.log('[Orders Controller] Getting checkout session:', sessionId);
+    const token = authorization?.replace('Bearer ', '');
+    return this.ordersService.getCheckoutSession(sessionId, token);
+  }
+
+  /**
+   * Verify payment status before creating order (Peach payment-first flow)
+   * POST /orders/verify-payment-for-order
+   *
+   * After customer completes payment with Peach, verify the payment status
+   * and retrieve checkout session data to create the order.
+   * Handles idempotency for already processed payments.
+   */
+  @Post('verify-payment-for-order')
+  async verifyPaymentForOrder(
+    @Body() data: { checkoutId: string },
+    @Headers('authorization') authorization?: string,
+  ): Promise<any> {
+    console.log('[Orders Controller] Verifying payment for order creation:', data.checkoutId);
+    const token = authorization?.replace('Bearer ', '');
+    return this.ordersService.verifyPaymentForOrder(data, token);
+  }
+
   // ============================================================
   // PAYMENT ENDPOINT REMOVED - Main API handles all payments
   // Payment processing now done via Peach Payments V2 in Main API
