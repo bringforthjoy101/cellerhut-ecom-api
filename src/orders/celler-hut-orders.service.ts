@@ -271,8 +271,8 @@ export class CellerHutOrdersService {
 
       const response = await cellerHutAPI.get('/orders', { params });
 
-      const transformedData = Array.isArray(response.data.data)
-        ? response.data.data.map(transformCellerHutOrder)
+      const transformedData = Array.isArray(response.data)
+        ? response.data.map(transformCellerHutOrder)
         : [];
 
       const pagination = transformPagination(response.data);
@@ -307,8 +307,8 @@ export class CellerHutOrdersService {
 
       const response = await cellerHutAPI.get('/orders', { params });
 
-      const transformedData = Array.isArray(response.data.data)
-        ? response.data.data.map(transformCellerHutOrder)
+      const transformedData = Array.isArray(response.data)
+        ? response.data.map(transformCellerHutOrder)
         : [];
 
       const pagination = transformPagination(response.data);
@@ -549,7 +549,9 @@ export class CellerHutOrdersService {
         { headers },
       );
 
-      return response.data.data;
+      console.log('[Celler Hut Orders] Payment verification response:', response.data);
+
+      return response.data;
     } catch (error) {
       console.error('[Celler Hut Orders] Verify payment for order failed:', error.message);
       throw new Error('Failed to verify payment for order');
