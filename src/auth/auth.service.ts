@@ -13,6 +13,12 @@ import {
   OtpResponse,
   VerifyOtpDto,
   OtpDto,
+  InitiateRegistrationDto,
+  InitiateRegistrationResponse,
+  VerifyRegistrationDto,
+  RegistrationResponse,
+  ResendRegistrationOtpDto,
+  ResendOtpResponse,
 } from './dto/create-auth.dto';
 import { User } from 'src/users/entities/user.entity';
 import { CellerHutAuthService } from './celler-hut-auth.service';
@@ -280,6 +286,52 @@ export class AuthService {
     } catch (error) {
       console.error('[Auth Service] Get purchase history failed:', error);
       return [];
+    }
+  }
+
+  /**
+   * Registration OTP Flow Methods
+   */
+
+  /**
+   * Initiate registration with email OTP verification
+   */
+  async initiateRegistration(
+    initiateDto: InitiateRegistrationDto,
+  ): Promise<InitiateRegistrationResponse> {
+    try {
+      return await this.cellerHutAuthService.initiateRegistration(initiateDto);
+    } catch (error) {
+      console.error('[Auth Service] Initiate registration failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verify OTP and complete registration
+   */
+  async verifyRegistration(
+    verifyDto: VerifyRegistrationDto,
+  ): Promise<RegistrationResponse> {
+    try {
+      return await this.cellerHutAuthService.verifyRegistration(verifyDto);
+    } catch (error) {
+      console.error('[Auth Service] Verify registration failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Resend registration OTP code
+   */
+  async resendRegistrationOTP(
+    resendDto: ResendRegistrationOtpDto,
+  ): Promise<ResendOtpResponse> {
+    try {
+      return await this.cellerHutAuthService.resendRegistrationOTP(resendDto);
+    } catch (error) {
+      console.error('[Auth Service] Resend OTP failed:', error);
+      throw error;
     }
   }
 

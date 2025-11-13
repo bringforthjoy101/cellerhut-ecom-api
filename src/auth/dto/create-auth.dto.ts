@@ -41,6 +41,13 @@ export class AuthResponse {
   token: string;
   permissions: string[];
   role?: string;
+  id?: number | string;
+  email?: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  first_name?: string;  // Support both naming conventions
+  last_name?: string;
 }
 export class CoreResponse extends CoreMutationOutput {}
 export class VerifyOtpDto {
@@ -65,4 +72,49 @@ export class OtpLoginDto {
   phone_number: string;
   name?: string;
   email?: string;
+}
+
+// Registration OTP DTOs (Email verification flow)
+export class InitiateRegistrationDto {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  password: string;
+}
+
+export class VerifyRegistrationDto {
+  otpId: string;
+  otp: string;
+}
+
+export class ResendRegistrationOtpDto {
+  otpId: string;
+}
+
+export class InitiateRegistrationResponse {
+  success: boolean;
+  otpId: string;
+  email: string;
+  expiresIn: number;
+  message: string;
+}
+
+export class RegistrationResponse {
+  token: string;
+  permissions: string;
+  customer: {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+    emailVerified: boolean;
+    avatar: string | null;
+  };
+}
+
+export class ResendOtpResponse {
+  success: boolean;
+  message: string;
+  attemptsRemaining: number;
 }

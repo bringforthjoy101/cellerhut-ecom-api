@@ -14,6 +14,12 @@ import {
   OtpResponse,
   VerifyOtpDto,
   OtpDto,
+  InitiateRegistrationDto,
+  InitiateRegistrationResponse,
+  VerifyRegistrationDto,
+  RegistrationResponse,
+  ResendRegistrationOtpDto,
+  ResendOtpResponse,
 } from './dto/create-auth.dto';
 import { User, Permission } from '../users/entities/user.entity';
 
@@ -37,6 +43,14 @@ export class CellerHutAuthService {
         token: token,
         permissions: this.mapUserPermissions(userData.role),
         role: userData.role || 'customer',
+        // Include user data for webview bridge (Phase 5)
+        id: userData.id,
+        email: userData.email,
+        name: userData.name,
+        firstName: userData.first_name,
+        lastName: userData.last_name,
+        first_name: userData.first_name,  // Keep both naming conventions
+        last_name: userData.last_name,
       };
     } catch (error) {
       console.error('[Celler Hut Auth] Registration failed:', error);
@@ -66,6 +80,14 @@ export class CellerHutAuthService {
         token: token,
         permissions: this.mapUserPermissions(userData.role),
         role: userData.role || 'customer',
+        // Include user data for webview bridge (Phase 5)
+        id: userData.id,
+        email: userData.email,
+        name: userData.name,
+        firstName: userData.first_name,
+        lastName: userData.last_name,
+        first_name: userData.first_name,  // Keep both naming conventions
+        last_name: userData.last_name,
       };
     } catch (error) {
       console.error('[Celler Hut Auth] Login failed:', error);
@@ -225,6 +247,14 @@ export class CellerHutAuthService {
         token: token,
         permissions: this.mapUserPermissions(userData.role),
         role: userData.role || 'customer',
+        // Include user data for webview bridge (Phase 5)
+        id: userData.id,
+        email: userData.email,
+        name: userData.name,
+        firstName: userData.first_name,
+        lastName: userData.last_name,
+        first_name: userData.first_name,  // Keep both naming conventions
+        last_name: userData.last_name,
       };
     } catch (error) {
       console.error('[Celler Hut Auth] Social login failed:', error);
@@ -250,6 +280,14 @@ export class CellerHutAuthService {
         token: token,
         permissions: this.mapUserPermissions(userData.role),
         role: userData.role || 'customer',
+        // Include user data for webview bridge (Phase 5)
+        id: userData.id,
+        email: userData.email,
+        name: userData.name,
+        firstName: userData.first_name,
+        lastName: userData.last_name,
+        first_name: userData.first_name,  // Keep both naming conventions
+        last_name: userData.last_name,
       };
     } catch (error) {
       console.error('[Celler Hut Auth] OTP login failed:', error);
@@ -388,6 +426,14 @@ export class CellerHutAuthService {
         token: token,
         permissions: this.mapUserPermissions(userData.role),
         role: userData.role || 'customer',
+        // Include user data for webview bridge (Phase 5)
+        id: userData.id,
+        email: userData.email,
+        name: userData.name,
+        firstName: userData.first_name,
+        lastName: userData.last_name,
+        first_name: userData.first_name,  // Keep both naming conventions
+        last_name: userData.last_name,
       };
     } catch (error) {
       console.error('[Celler Hut Auth] Token refresh failed:', error);
@@ -596,6 +642,120 @@ export class CellerHutAuthService {
     } catch (error) {
       console.error('[Celler Hut Auth] Delete address failed:', error);
       throw new Error('Failed to delete address');
+    }
+  }
+
+  /**
+   * Registration OTP Flow Methods
+   */
+
+  /**
+   * Initiate registration with email OTP verification
+   * Step 1: Send registration data and receive OTP ID
+   */
+  async initiateRegistration(
+    initiateDto: InitiateRegistrationDto,
+  ): Promise<InitiateRegistrationResponse> {
+    try {
+      const response = await cellerHutAPI.post(
+        '/ecommerce/auth/initiate-registration',
+        {
+          firstName: initiateDto.firstName,
+          lastName: initiateDto.lastName,
+          email: initiateDto.email,
+          phone: initiateDto.phone,
+          password: initiateDto.password,
+        },
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error('[Celler Hut Auth] Initiate registration failed:', error);
+
+      // Handle specific error cases
+      if (error.response?.status === 409) {
+        throw new Error('This email address or phone number is already registered');
+      }
+
+      if (error.response?.status === 422) {
+        const validationErrors = error.response.data?.errors || [];
+        const errorMessage = validationErrors.length > 0
+          ? validationErrors[0].msg
+          : 'Invalid registration data provided';
+        throw new Error(errorMessage);
+      }
+
+      throw new Error('Registration failed. Please try again.');
+    }
+  }
+
+  /**
+   * Verify OTP and complete registration
+   * Step 2: Verify OTP code and create customer account
+   */
+  async verifyRegistration(
+    verifyDto: VerifyRegistrationDto,
+  ): Promise<RegistrationResponse> {
+    try {
+      const response = await cellerHutAPI.post(
+        '/ecommerce/auth/verify-registration',
+        {
+          otpId: verifyDto.otpId,
+          otp: verifyDto.otp,
+        },
+      );
+
+      // The backend returns: { token, permissions, customer }
+      return response.data;
+    } catch (error) {
+      console.error('[Celler Hut Auth] Verify registration failed:', error);
+
+      // Handle specific error cases
+      if (error.response?.status === 404) {
+        throw new Error('Verification code expired or not found. Please request a new one.');
+      }
+
+      if (error.response?.status === 400) {
+        throw new Error('Invalid verification code. Please try again.');
+      }
+
+      if (error.response?.status === 429) {
+        throw new Error('Too many failed attempts. Please request a new verification code.');
+      }
+
+      throw new Error('Verification failed. Please try again.');
+    }
+  }
+
+  /**
+   * Resend OTP code
+   * Step 2b (Optional): Request a new OTP code
+   */
+  async resendRegistrationOTP(
+    resendDto: ResendRegistrationOtpDto,
+  ): Promise<ResendOtpResponse> {
+    try {
+      const response = await cellerHutAPI.post(
+        '/ecommerce/auth/resend-registration-otp',
+        {
+          otpId: resendDto.otpId,
+        },
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error('[Celler Hut Auth] Resend OTP failed:', error);
+
+      // Handle specific error cases
+      if (error.response?.status === 404) {
+        throw new Error('Registration session expired. Please start registration again.');
+      }
+
+      if (error.response?.status === 429) {
+        throw new Error('Maximum resend attempts reached. Please try again later.');
+      }
+
+      throw new Error('Failed to resend verification code. Please try again.');
     }
   }
 }

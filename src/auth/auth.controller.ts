@@ -11,6 +11,9 @@ import {
   SocialLoginDto,
   VerifyForgetPasswordDto,
   VerifyOtpDto,
+  InitiateRegistrationDto,
+  VerifyRegistrationDto,
+  ResendRegistrationOtpDto,
 } from './dto/create-auth.dto';
 
 @Controller()
@@ -66,6 +69,24 @@ export class AuthController {
     @Body() verifyForgetPasswordDto: VerifyForgetPasswordDto,
   ) {
     return this.authService.verifyForgetPasswordToken(verifyForgetPasswordDto);
+  }
+
+  /**
+   * Registration OTP Flow Endpoints
+   */
+  @Post('initiate-registration')
+  initiateRegistration(@Body() initiateDto: InitiateRegistrationDto) {
+    return this.authService.initiateRegistration(initiateDto);
+  }
+
+  @Post('verify-registration')
+  verifyRegistration(@Body() verifyDto: VerifyRegistrationDto) {
+    return this.authService.verifyRegistration(verifyDto);
+  }
+
+  @Post('resend-registration-otp')
+  resendRegistrationOTP(@Body() resendDto: ResendRegistrationOtpDto) {
+    return this.authService.resendRegistrationOTP(resendDto);
   }
 
   @Get('me')
